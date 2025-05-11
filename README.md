@@ -33,8 +33,8 @@ graph TD
 
 
 # Clone the repository
-git clone https://github.com/yourusername/multi-agent-faq-assistant.git
-cd multi-agent-faq-assistant
+- git clone https://github.com/yourusername/multi-agent-faq-assistant.git
+- cd multi-agent-faq-assistant
 
 # Create a virtual environment
 python -m venv venv
