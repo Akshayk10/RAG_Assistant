@@ -1,18 +1,15 @@
-__import__('pysqlite3')
+**import**('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 import os
 import streamlit as st
 from agents import agent_router
 from vector_store import load_vector_store, create_vector_store
 from ingest_documents import load_and_chunk_pdfs
 from dotenv import load_dotenv
-
 # --- Configuration ---
 st.set_page_config(page_title="Multi-Agent FAQ Assistant", layout="wide")
 load_dotenv()  # Load .env file if exists
-
 # --- Authentication ---
 def get_api_key():
     """Get API key from safest available source"""
@@ -30,7 +27,6 @@ def get_api_key():
             2. For deployment: Set in Streamlit Secrets
             """)
             st.stop()
-
 # --- Vector Store Initialization ---
 def initialize_app():
     """Handle vector store setup"""
@@ -43,13 +39,10 @@ def initialize_app():
     except Exception as e:
         st.error(f"Initialization error: {str(e)}")
         st.stop()
-
 # --- Main App ---
 vector_store = initialize_app()
 api_key = get_api_key()  # Validates auth
-
 st.title("📘 Multi-Agent FAQ Assistant")
-
 # Document Upload (Simplified)
 with st.sidebar:
     st.header("Upload Documents")
@@ -65,12 +58,10 @@ with st.sidebar:
             with open(f"data/{file.name}", "wb") as f:
                 f.write(file.getbuffer())
         
-        with st.spinner("Processing documents..."):
+        with st.spinner("Creating vector store..."):
             chunks = load_and_chunk_pdfs()
-            create_vector_store(chunks)
-        st.success(f"Processed {len(uploaded_files)} files!")
-        st.experimental_rerun()
-
+            create_vector_store(chunks)  # This should recreate the DB
+        st.rerun()
 # Query Interface (Original Format)
 query = st.text_input("🔍 Ask a question")
 if query:
