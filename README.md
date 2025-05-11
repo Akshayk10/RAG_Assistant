@@ -29,6 +29,10 @@ graph TD
     G --> H[LLM Generation]
 ```
 
+## How to use
+
+- Upload your documents and ask your queries!
+
 ## Installation and setup
 
 
