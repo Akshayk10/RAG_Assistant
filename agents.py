@@ -16,18 +16,25 @@ def rag_llm_answer(chunks, query):
     return llm.invoke(prompt)
 
 def agent_router(query, vector_store):
-    lower_query = query.lower()
-
-    if "calculate" in lower_query:
-        return {"tool": "Calculator", "answer": calculator_tool(query)}
-    elif "define" in lower_query:
-        return {"tool": "Dictionary", "answer": dictionary_tool(query)}
-    else:
-        chunks = retrieve_chunks(query, vector_store)
-        print(f"Retrieved {len(chunks)} chunks for query: {query}")  # 👈 Add this line
-        answer = rag_llm_answer(chunks, query)
+    query_lower = query.lower()
+    
+    # Calculator
+    if any(tag in query_lower for tag in ["calculate", "compute", "+", "-", "*", "/"]):
         return {
-            "tool": "RAG → Gemini",
-            "snippets": [doc.page_content for doc in chunks],
-            "answer": answer
+            "tool": "Calculator",
+            **calculator_tool(query)  # Unpacks all returned data
         }
+        
+    # Dictionary
+    elif any(tag in query_lower for tag in ["define", "meaning", "what does"]):
+        return {
+            "tool": "Dictionary",
+            **dictionary_tool(query)
+        }
+        
+    # Default RAG flow
+    return {
+        "tool": "Document Search",
+        "answer": rag_answer(query, vector_store),
+        "snippets": get_context_chunks(query, vector_store)
+    }
