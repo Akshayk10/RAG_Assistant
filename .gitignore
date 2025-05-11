@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+
+# Environment
+.env
+.streamlit/secrets.toml  # Actual secrets file
+
+# Data
+data/
+db/
+
+# IDE
+.idea/
+.vscode/
