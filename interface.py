@@ -88,21 +88,45 @@ def main():
                         st.write(query)
                     
                     with st.chat_message("assistant"):
-                        # Answer section
-                        st.markdown("#### Answer")
-                        st.success(result["answer"])
+                        # FINAL ANSWER SECTION (always visible)
+                        st.markdown("## ✨ Final Answer")
+                        if "error" in result:
+                            st.error(result.get("formatted", result.get("answer", "Error processing request")))
+                        else:
+                            if result["tool"] == "Calculator":
+                                st.success(f"**Result:** {result['result']}")
+                            elif result["tool"] == "Dictionary":
+                                st.success(f"**Definition:** {result['definition']}")
+                            else:  # Document Search
+                                st.success(result["answer"])
                         
-                        # Context section
-                        if "snippets" in result:
-                            with st.expander("🔍 View Source Context"):
-                                st.markdown("#### Retrieved Contexts")
+                        # DETAILED BREAKDOWN (expandable)
+                        with st.expander("📝 See Detailed Breakdown"):
+                            # Calculator Details
+                            if result["tool"] == "Calculator":
+                                st.markdown("### 🧮 Calculation Details")
+                                st.code(f"{result['expression']}", language="latex")
+                            
+                            # Dictionary Details
+                            elif result["tool"] == "Dictionary":
+                                st.markdown("### 📖 Full Definition")
+                                with st.container(border=True):
+                                    st.markdown(f"**Word:** {result['word'].capitalize()}")
+                                    st.markdown(f"**Type:** {result['partOfSpeech']}")
+                                    st.divider()
+                                    st.markdown(f"**Example Usage:**\n_{result['example']}_")
+                            
+                            # Document Search Details
+                            elif "snippets" in result:
+                                st.markdown("### 📚 Source Contexts")
                                 for i, snippet in enumerate(result["snippets"]):
                                     st.markdown(f"**Context {i+1}**")
                                     st.text(snippet[:500] + ("..." if len(snippet) > 500 else ""))
-                                    st.divider()
-                                    
-                        # Tool used
-                        st.caption(f"Tool used: {result['tool']}")
+                                    if i < len(result["snippets"]) - 1:
+                                        st.divider()
+                        
+                        # Tool used badge
+                        st.caption(f"🔧 Tool used: {result['tool']}")
                         
                 except Exception as e:
                     st.error(f"Error generating answer: {str(e)}")
