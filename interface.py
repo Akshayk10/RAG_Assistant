@@ -92,7 +92,7 @@ def main():
                         # FINAL ANSWER SECTION (ALWAYS VISIBLE AT TOP)
                         # =============================================
                         
-                        # Display only the clean content without additional formatting - plain text
+                        # Display only the content part without any formatting
                         if result["tool"] == "Calculator":
                             st.markdown(result["result"])
                         elif result["tool"] == "Dictionary":
