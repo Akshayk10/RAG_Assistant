@@ -35,6 +35,6 @@ def agent_router(query, vector_store):
     # Default RAG flow
     return {
         "tool": "Document Search",
-        "answer": rag_answer(query, vector_store),
+        "answer": agent_router(query, vector_store),
         "snippets": get_context_chunks(query, vector_store)
     }
