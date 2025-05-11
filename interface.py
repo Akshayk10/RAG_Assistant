@@ -7,18 +7,38 @@ import streamlit as st
 from ingest_documents import load_and_chunk_pdfs, save_uploaded_files
 from vector_store import create_vector_store, load_vector_store
 from agents import agent_router
+from dotenv import load_dotenv
+
+# --- Initialization ---
+load_dotenv()  # Load environment variables
 
 # Initialize session state
 if 'vector_store' not in st.session_state:
     st.session_state.vector_store = load_vector_store() if os.path.exists("db") else None
-if 'show_upload' not in st.session_state:
-    st.session_state.show_upload = True  # Always show upload option
+if 'docs_processed' not in st.session_state:
+    st.session_state.docs_processed = False
 
-# Page config
+# --- Authentication ---
+def get_api_key():
+    """Safe API key loader for all environments"""
+    try:
+        return st.secrets["GOOGLE_API_KEY"]  # Streamlit Cloud
+    except:
+        try:
+            return os.getenv("GOOGLE_API_KEY")  # Local .env
+        except:
+            st.error("""
+            API key not found. Please set:
+            1. Streamlit Secrets (production)
+            2. .env file (local development)
+            """)
+            st.stop()
+
+# --- Page Config ---
 st.set_page_config(page_title="RAG Assistant", layout="wide")
 st.title("📘 Document QA Assistant")
 
-# Main function
+# --- Main Function ---
 def main():
     # Always show upload section
     with st.sidebar:
@@ -27,36 +47,65 @@ def main():
             "Choose PDF files", 
             type="pdf", 
             accept_multiple_files=True,
-            key="file_uploader"
+            help="Upload one or more PDF documents to process"
         )
         
-        if st.button("Process Documents", disabled=not uploaded_files):
+        if st.button("✨ Process Documents", 
+                    disabled=not uploaded_files,
+                    help="Extract text and build search index"):
             with st.spinner("Processing files..."):
                 try:
                     # Save and process files
                     saved_files = save_uploaded_files(uploaded_files)
                     chunks = load_and_chunk_pdfs()
+                    
+                    if not chunks:
+                        st.error("No text could be extracted from these PDFs")
+                        return
+                        
                     st.session_state.vector_store = create_vector_store(chunks)
-                    st.success(f"Processed {len(saved_files)} documents!")
+                    st.session_state.docs_processed = True
+                    st.success(f"✅ Processed {len(saved_files)} documents!")
+                    st.balloons()
                     st.rerun()
+                    
                 except Exception as e:
-                    st.error(f"Processing failed: {str(e)}")
+                    st.error(f"❌ Processing failed: {str(e)}")
 
-    # Show appropriate message based on state
-    if not st.session_state.vector_store:
-        st.warning("No documents processed yet. Please upload PDFs using the sidebar.")
+    # Show appropriate interface
+    if not st.session_state.docs_processed:
+        st.warning("Vector store is empty. Please upload and process documents first.")
+        st.info("ℹ️ Use the sidebar to upload PDF files and click 'Process Documents'")
     else:
-        query = st.text_input("🔍 Ask a question about your documents")
+        query = st.chat_input("Ask a question about your documents...")
         if query:
-            with st.spinner("Searching documents..."):
-                result = agent_router(query, st.session_state.vector_store)
-                st.markdown("### 💬 Answer")
-                st.success(result["answer"])
-                
-                if "snippets" in result:
-                    with st.expander("📄 Source Excerpts"):
-                        for i, snippet in enumerate(result["snippets"]):
-                            st.text(f"Source {i+1}:\n{snippet[:500]}...")
+            with st.spinner("Analyzing documents..."):
+                try:
+                    result = agent_router(query, st.session_state.vector_store)
+                    
+                    # Display conversation-style results
+                    with st.chat_message("user"):
+                        st.write(query)
+                    
+                    with st.chat_message("assistant"):
+                        # Answer section
+                        st.markdown("#### Answer")
+                        st.success(result["answer"])
+                        
+                        # Context section
+                        if "snippets" in result:
+                            with st.expander("🔍 View Source Context"):
+                                st.markdown("#### Retrieved Contexts")
+                                for i, snippet in enumerate(result["snippets"]):
+                                    st.markdown(f"**Context {i+1}**")
+                                    st.text(snippet[:500] + ("..." if len(snippet) > 500 else ""))
+                                    st.divider()
+                                    
+                        # Tool used
+                        st.caption(f"Tool used: {result['tool']}")
+                        
+                except Exception as e:
+                    st.error(f"Error generating answer: {str(e)}")
 
 if __name__ == "__main__":
     main()
