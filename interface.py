@@ -6,6 +6,7 @@ import os
 import streamlit as st
 from ingest_documents import load_and_chunk_pdfs, save_uploaded_files
 from vector_store import create_vector_store, load_vector_store
+from agents import agent_router
 
 # Initialize session state
 if 'vector_store' not in st.session_state:
